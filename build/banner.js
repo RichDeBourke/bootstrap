@@ -8,6 +8,7 @@ function getBanner(pluginFilename) {
   return `/*!
   * Bootstrap${pluginFilename ? ` ${pluginFilename}` : ''} v${pkg.version} (${pkg.homepage})
   * Copyright 2011-${year} ${pkg.author}
+  * Copyright 2023-2024 Rich DeBourke SBF Consulting
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */`
 }

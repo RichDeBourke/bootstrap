@@ -1,6 +1,7 @@
 /*!
   * Bootstrap v5.3.0 (https://getbootstrap.com/)
-  * Copyright 2011-2023 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2011-2024 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+  * Copyright 2023-2024 Rich DeBourke SBF Consulting
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE)
   */
 import * as Popper from '@popperjs/core';
@@ -206,7 +207,6 @@ const noop = () => {};
 const reflow = element => {
   element.offsetHeight; // eslint-disable-line no-unused-expressions
 };
-
 const getjQuery = () => {
   if (window.jQuery && !document.body.hasAttribute('data-bs-no-jquery')) {
     return window.jQuery;
@@ -2073,7 +2073,6 @@ const Default$8 = {
   // if false, we use the backdrop helper without adding any element to the dom
   rootElement: 'body' // give the choice to place backdrop under different elements
 };
-
 const DefaultType$8 = {
   className: 'string',
   clickCallback: '(function|null)',
@@ -2198,7 +2197,6 @@ const Default$7 = {
   autofocus: true,
   trapElement: null // The element to trap focus inside of
 };
-
 const DefaultType$7 = {
   autofocus: 'boolean',
   trapElement: 'element'
@@ -2711,12 +2709,14 @@ const SELECTOR_DATA_TOGGLE$1 = '[data-bs-toggle="offcanvas"]';
 const Default$5 = {
   backdrop: true,
   keyboard: true,
-  scroll: false
+  scroll: false,
+  focus: true // Modified: add a fourth value, focus
 };
 const DefaultType$5 = {
   backdrop: '(boolean|string)',
   keyboard: 'boolean',
-  scroll: 'boolean'
+  scroll: 'boolean',
+  focus: 'boolean' // Modified: focus is type boolean
 };
 
 /**
@@ -2745,8 +2745,9 @@ class Offcanvas extends BaseComponent {
 
   // Public
   toggle(relatedTarget) {
-    return this._isShown ? this.hide() : this.show(relatedTarget);
-  }
+    return this._isShown ? this.hide(relatedTarget) : this.show(relatedTarget);
+  } // Modified: relatedTarget is passed to the hide function to use for ARIA attributes
+
   show(relatedTarget) {
     if (this._isShown) {
       return;
@@ -2765,6 +2766,8 @@ class Offcanvas extends BaseComponent {
     this._element.setAttribute('aria-modal', true);
     this._element.setAttribute('role', 'dialog');
     this._element.classList.add(CLASS_NAME_SHOWING$1);
+    this._addAria(relatedTarget, true); // Modified: added call to ARIA
+
     const completeCallBack = () => {
       if (!this._config.scroll || this._config.backdrop) {
         this._focustrap.activate();
@@ -2777,7 +2780,9 @@ class Offcanvas extends BaseComponent {
     };
     this._queueCallback(completeCallBack, this._element, true);
   }
-  hide() {
+
+  // Modified: pass in the relatedTarget
+  hide(relatedTarget) {
     if (!this._isShown) {
       return;
     }
@@ -2790,6 +2795,8 @@ class Offcanvas extends BaseComponent {
     this._isShown = false;
     this._element.classList.add(CLASS_NAME_HIDING);
     this._backdrop.hide();
+    this._addAria(relatedTarget, false); // Modified: added call to ARIA
+
     const completeCallback = () => {
       this._element.classList.remove(CLASS_NAME_SHOW$3, CLASS_NAME_HIDING);
       this._element.removeAttribute('aria-modal');
@@ -2826,6 +2833,13 @@ class Offcanvas extends BaseComponent {
       rootElement: this._element.parentNode,
       clickCallback: isVisible ? clickCallback : null
     });
+  }
+  _addAria(element, isOpen) {
+    // Modified: added ARIA function
+    if (!element) {
+      return;
+    }
+    element.setAttribute('aria-expanded', isOpen);
   }
   _initializeFocusTrap() {
     return new FocusTrap({
@@ -2872,12 +2886,6 @@ EventHandler.on(document, EVENT_CLICK_DATA_API$1, SELECTOR_DATA_TOGGLE$1, functi
   if (isDisabled(this)) {
     return;
   }
-  EventHandler.one(target, EVENT_HIDDEN$3, () => {
-    // focus on trigger when it is closed
-    if (isVisible(this)) {
-      this.focus();
-    }
-  });
 
   // avoid conflict when clicking a toggler of an offcanvas, while another is open
   const alreadyOpen = SelectorEngine.findOne(OPEN_SELECTOR);
@@ -2885,6 +2893,18 @@ EventHandler.on(document, EVENT_CLICK_DATA_API$1, SELECTOR_DATA_TOGGLE$1, functi
     Offcanvas.getInstance(alreadyOpen).hide();
   }
   const data = Offcanvas.getOrCreateInstance(target);
+
+  // Modified - move EventHandler.one down and make it conditional
+  if (data._config.focus) {
+    EventHandler.one(target, EVENT_HIDDEN$3, () => {
+      // focus on trigger when it is closed
+      if (isVisible(this)) {
+        this.focus({
+          preventScroll: true
+        });
+      }
+    });
+  }
   data.toggle(this);
 });
 EventHandler.on(window, EVENT_LOAD_DATA_API$2, () => {

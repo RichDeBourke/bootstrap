@@ -21,6 +21,76 @@
   <a href="https://blog.getbootstrap.com/">Blog</a>
 </p>
 
+## Forked Bootstrap 5 — Improve offcanvas drawer support for same-page navigation
+
+#### Add an option to *not* return focus to the offcanvas toggle button after an offcanvas nav drawer is closed.
+
+A navbar can be configured with an [offcanvas drawer](https://getbootstrap.com/docs/5.3/components/navbar/#offcanvas) where the menu slides in (when a navbar button is clicked or tapped). Currently, the offcanvas drawer acts like a modal in that closing the drawer causes focus to be reapplied to the navbar button.
+
+Reapplying focus is the expected behavior for a modal used for actions such as adjusting settings (e.g. font size), but is unexpected when the user clicks a same-page link. The expectation is focus will be on the destination element.
+
+#### Change details
+
+Make the following changes to the offcanvas.js source file
+
+- Add a focus config setting to the list of [Default](https://github.com/RichDeBourke/bootstrap/blob/offcanvas-focus-option/js/src/offcanvas.js#L49) config values. Value is normally `true`. 
+- Define the focus config [DefaultType](https://github.com/RichDeBourke/bootstrap/blob/offcanvas-focus-option/js/src/offcanvas.js#L56) as `boolean`.
+- In the `EventHandler.on` function, move the [`EventHandler.one`](https://github.com/RichDeBourke/bootstrap/blob/offcanvas-focus-option/js/src/offcanvas.js#L253) function call to after the data const value is set, and wrap the `EventHandler.one` function in an `if statement` that only calls the `EventHandler.one` function if `data._config.focus` is set to `true`.
+
+```
+    const Default = {
+        backdrop: true,
+        keyboard: true,
+        scroll: false,
+        focus: true
+    }
+
+    const DefaultType = {
+        backdrop: '(boolean|string)',
+        keyboard: 'boolean',
+        scroll: 'boolean',
+        focus: 'boolean'
+    }
+```
+
+```
+    const data = Offcanvas.getOrCreateInstance(target)
+    if (data._config.focus) {
+        EventHandler.one(target, EVENT_HIDDEN, () => {
+            // focus on trigger when it is closed
+           if (isVisible(this)) {
+               this.focus({ preventScroll: true })
+           }
+       })
+    }
+```
+`EventHandler.one` sets `this.focus()` to take place after the offcanvas drawer has been hidden. Making the `EventHandler.one` conditional makes it possible to use links on the offcanvas drawer to move around a page and have the tab-order in the right sequence, rather than restarting from the navbar.
+
+#### Setting the focus option
+
+The focus setting can be set by either a `data-bs-focus="false"` or a `data-bs-config= '{"focus": false}'` data attribute on the offcanvas div.
+
+#### Maintaining current functionality
+
+If the new focus variable is left at the default value (true), then offcanvas sidebars will operate the same way they do now.
+
+#### Changes to the documentation
+
+##### offcanvas.md 
+
+Add a line to the Options table in offcanvas.md to provide information about the new variable.
+
+`focus    boolean    true    Return focus to the data-bs-toggle element.`
+
+##### Example
+
+Add a functional example of using offcanvas for a single-page website to the Examples section.
+
+- Add a new folder, navbar-single in the examples folder
+- Add two images for the new example
+- Update examples.yml
+
+---
 
 ## Bootstrap 5
 
